@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMP Study Tool - Certified Meeting Professional Exam Preparation</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/splitting@1.0.6/dist/splitting.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'navy': '#1a2332',
+                        'gold': '#c9a96e',
+                        'sage': '#7a8471',
+                        'warm-gray': '#f5f4f2',
+                        'charcoal': '#2d3748'
+                    },
+                    fontFamily: {
+                        'display': ['Crimson Text', 'serif'],
+                        'body': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f4f2 0%, #e8e6e1 100%);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .hero-bg {
+            background: linear-gradient(135deg, #1a2332 0%, #2d3748 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .progress-ring {
+            transition: stroke-dasharray 0.5s ease-in-out;
+        }
+        
+        .flashcard {
+            perspective: 1000px;
+            height: 300px;
+        }
+        
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+        
+        .domain-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .domain-card:hover {
+            border-color: #c9a96e;
+            transform: translateY(-4px);
+        }
+        
+        .question-option {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .question-option:hover {
+            background-color: #f1f5f9;
+            transform: translateX(4px);
+        }
+        
+        .question-option.selected {
+            background-color: #c9a96e;
+            color: white;
+        }
+        
+        .question-option.correct {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .question-option.incorrect {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .floating-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #c9a96e 0%, #7a8471 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-blur {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .study-mode-tab {
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .study-mode-tab.active {
+            border-bottom-color: #c9a96e;
+            color: #c9a96e;
+        }
+        
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+            80%, 100% {
+                transform: scale(1.2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="font-body text-charcoal">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 nav-blur border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="text-xl font-display font-semibold text-navy">Maricota's Exam Prep</div>
+                    <div class="hidden md:block text-sm text-gray-600">Certified Meeting Professional</div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <div class="hidden md:flex items-center space-x-4">
+                        <div class="text-sm text-gray-600">Overall Progress</div>
+                        <div class="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div id="global-progress-bar" class="h-full bg-gold transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div id="global-progress-text" class="text-sm font-medium text-navy">0%</div>
+                    </div>
+                    
+                    <button id="study-timer-btn" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-sage text-white rounded-lg hover:bg-opacity-90 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="timer-display">00:00</span>
+                    </button>
+                    
+                    <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-gray-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg pt-16 pb-20 relative">
+        <div class="floating-particles" id="particles-container"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center py-16">
+                <h1 class="text-5xl md:text-6xl font-display font-bold text-white mb-6">
+                    Master the <span class="gradient-text">CMP Exam</span>
+                </h1>
+                <div class="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                    <span id="typed-text"></span>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <button id="start-studying-btn" class="px-8 py-4 bg-gold text-navy font-semibold rounded-lg hover:bg-opacity-90 transition-all transform hover:scale-105">
+                        Start Studying
+                    </button>
+                    <button id="take-assessment-btn" class="px-8 py-4 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-navy transition-all">
+                        Take Assessment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Dashboard Overview -->
+        <section id="dashboard-section" class="mb-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-display font-bold text-navy mb-4">Study Dashboard</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Track your progress across all 12 CMP domains. Focus on high-weight areas to maximize your exam score.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12" id="domains-grid">
+                <!-- Domain cards will be generated here -->
+            </div>
+            
+            <!-- Study Priority Legend -->
+            <div class="bg-white rounded-xl p-6 shadow-lg">
+                <h3 class="text-xl font-semibold text-navy mb-4">Study Priority Guide</h3>
+                <div class="flex flex-wrap gap-6">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 bg-red-500 rounded-full"></div>
+                        <span class="text-sm">High Priority (20%+ of exam)</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                        <span class="text-sm">Medium Priority (7-15% of exam)</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 bg-green-500 rounded-full"></div>
+                        <span class="text-sm">Standard Priority (5-6% of exam)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Study Interface -->
+        <section id="study-section" class="hidden">
+            <!-- Study Mode Tabs -->
+            <div class="flex flex-wrap gap-1 mb-8 bg-white rounded-lg p-2 shadow-lg">
+                <button class="study-mode-tab px-6 py-3 rounded-md font-medium active" data-mode="flashcards">
+                    Flashcards
+                </button>
+                <button class="study-mode-tab px-6 py-3 rounded-md font-medium" data-mode="questions">
+                    Practice Questions
+                </button>
+                <button class="study-mode-tab px-6 py-3 rounded-md font-medium" data-mode="scenarios">
+                    Scenarios
+                </button>
+                <button class="study-mode-tab px-6 py-3 rounded-md font-medium" data-mode="progress">
+                    Progress
+                </button>
+            </div>
+
+            <!-- Flashcards Mode -->
+            <div id="flashcards-mode" class="study-mode-content">
+                <div class="bg-white rounded-xl p-8 shadow-lg mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-semibold text-navy">Interactive Flashcards</h3>
+                        <div class="flex items-center space-x-4">
+                            <select id="flashcard-domain-filter" class="px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="all">All Domains</option>
+                            </select>
+                            <button id="shuffle-flashcards" class="px-4 py-2 bg-sage text-white rounded-lg hover:bg-opacity-90">
+                                Shuffle
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flashcard mb-8" id="flashcard-container">
+                        <div class="flashcard-inner">
+                            <div class="flashcard-front bg-gradient-to-br from-gold to-yellow-400 text-white">
+                                <div class="text-center">
+                                    <div class="text-sm mb-4 opacity-80" id="flashcard-domain">Domain A</div>
+                                    <div class="text-2xl font-semibold" id="flashcard-term">Click to start</div>
+                                </div>
+                            </div>
+                            <div class="flashcard-back bg-gradient-to-br from-navy to-gray-700 text-white">
+                                <div class="text-center">
+                                    <div class="text-lg leading-relaxed" id="flashcard-definition">Definition will appear here</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center space-x-4">
+                        <button id="flashcard-dont-know" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                            Don't Know
+                        </button>
+                        <button id="flashcard-review" class="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+                            Need Review
+                        </button>
+                        <button id="flashcard-know" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                            Know It
+                        </button>
+                    </div>
+                    
+                    <div class="mt-6 text-center">
+                        <div class="text-sm text-gray-600">
+                            Card <span id="flashcard-counter">1</span> of <span id="flashcard-total">20</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Practice Questions Mode -->
+            <div id="questions-mode" class="study-mode-content hidden">
+                <div class="bg-white rounded-xl p-8 shadow-lg mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-semibold text-navy">Practice Questions</h3>
+                        <div class="flex items-center space-x-4">
+                            <select id="questions-domain-filter" class="px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="all">All Domains</option>
+                            </select>
+                            <div class="text-sm text-gray-600">
+                                Score: <span id="questions-score">0/0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="question-container">
+                        <div class="mb-6">
+                            <div class="text-sm text-gray-600 mb-2" id="question-domain">Domain H - Event Design</div>
+                            <div class="text-lg font-medium text-navy mb-6" id="question-text">
+                                Click "Start Questions" to begin practicing with domain-specific questions.
+                            </div>
+                            <div class="space-y-3" id="question-options">
+                                <!-- Options will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <button id="start-questions-btn" class="px-6 py-3 bg-gold text-white rounded-lg hover:bg-opacity-90">
+                                Start Questions
+                            </button>
+                            <div class="text-sm text-gray-600">
+                                Question <span id="question-counter">0</span> of <span id="question-total">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="question-explanation" class="hidden mt-6 p-4 bg-blue-50 rounded-lg">
+                        <div class="font-medium text-navy mb-2">Explanation:</div>
+                        <div class="text-gray-700" id="explanation-text"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenarios Mode -->
+            <div id="scenarios-mode" class="study-mode-content hidden">
+                <div class="bg-white rounded-xl p-8 shadow-lg mb-8">
+                    <h3 class="text-2xl font-semibold text-navy mb-6">Real-World Scenarios</h3>
+                    
+                    <div id="scenario-container">
+                        <div class="mb-6">
+                            <div class="text-sm text-gray-600 mb-2" id="scenario-domain">Domain H - Event Design</div>
+                            <h4 class="text-xl font-semibold text-navy mb-4" id="scenario-title">Hybrid Event Design Challenge</h4>
+                            <div class="prose max-w-none text-gray-700 mb-6">
+                                <p id="scenario-situation">
+                                    You're planning a 3-day international conference for 500 in-person attendees and 1,000 virtual participants...
+                                </p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                                <div class="font-medium text-navy mb-2">Challenge:</div>
+                                <div class="text-gray-700" id="scenario-challenge">
+                                    Design the attendee experience ensuring both in-person and virtual participants have engaging experiences.
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-2 gap-4 mb-6">
+                                <div class="bg-blue-50 rounded-lg p-4">
+                                    <div class="font-medium text-navy mb-2">Key Considerations:</div>
+                                    <ul id="scenario-considerations" class="text-sm text-gray-700 space-y-1">
+                                        <!-- Considerations will be populated here -->
+                                    </ul>
+                                </div>
+                                <div class="bg-green-50 rounded-lg p-4">
+                                    <div class="font-medium text-navy mb-2">Recommended Approach:</div>
+                                    <div class="text-sm text-gray-700" id="scenario-solution">
+                                        Implement a comprehensive hybrid platform with live streaming and interactive features.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <button id="next-scenario-btn" class="px-6 py-3 bg-sage text-white rounded-lg hover:bg-opacity-90">
+                                Next Scenario
+                            </button>
+                            <div class="text-sm text-gray-600">
+                                Scenario <span id="scenario-counter">1</span> of <span id="scenario-total">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Mode -->
+            <div id="progress-mode" class="study-mode-content hidden">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-semibold text-navy mb-6">Study Statistics</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Total Study Time</span>
+                                <span class="font-semibold text-navy" id="total-study-time">0h 0m</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Flashcards Mastered</span>
+                                <span class="font-semibold text-navy" id="flashcards-mastered">0 / 20</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Questions Answered</span>
+                                <span class="font-semibold text-navy" id="questions-answered">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Correct Answers</span>
+                                <span class="font-semibold text-navy" id="correct-answers">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Success Rate</span>
+                                <span class="font-semibold text-navy" id="success-rate">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-semibold text-navy mb-6">Domain Progress</h3>
+                        <div id="domain-progress-list" class="space-y-4">
+                            <!-- Domain progress items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-6 shadow-lg mt-8">
+                    <h3 class="text-xl font-semibold text-navy mb-6">Performance Analytics</h3>
+                    <div id="performance-chart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Exam Readiness Assessment -->
+        <section id="assessment-section" class="hidden">
+            <div class="bg-white rounded-xl p-8 shadow-lg mb-8">
+                <h3 class="text-2xl font-semibold text-navy mb-6">Exam Readiness Assessment</h3>
+                <div class="prose max-w-none text-gray-700 mb-6">
+                    <p>Take a comprehensive 150-question practice exam that mirrors the actual CMP exam structure. Questions are distributed according to the official domain weights.</p>
+                    <ul>
+                        <li>150 questions total</li>
+                        <li>Timed simulation (3 hours)</li>
+                        <li>Domain-weighted scoring</li>
+                        <li>Detailed performance analysis</li>
+                    </ul>
+                </div>
+                <div class="flex space-x-4">
+                    <button id="start-assessment-btn" class="px-8 py-4 bg-gold text-white rounded-lg hover:bg-opacity-90 font-semibold">
+                        Start Full Assessment
+                    </button>
+                    <button id="practice-assessment-btn" class="px-8 py-4 border-2 border-gold text-gold rounded-lg hover:bg-gold hover:text-white font-semibold transition-all">
+                        Practice Mode (30 Questions)
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-navy text-white py-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="mb-6">
+                <div class="text-2xl font-display font-semibold mb-2">Maricota's Exam Prep</div>
+                <div class="text-gray-300">Professional certification exam preparation</div>
+            </div>
+            <div class="border-t border-gray-600 pt-6">
+                <p class="text-gray-400 text-sm">
+                    © 2025 CMP Study Tool. Designed for Certified Meeting Professional exam preparation.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="cmp-data.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
